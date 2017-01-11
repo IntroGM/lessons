@@ -6,11 +6,11 @@ import matplotlib.cm as cm
 np.set_printoptions(precision=9, suppress=True, linewidth=120)
 
 
-### heat_diff_const_implicit.py
+### heat_diff_var_implicit.py
 ###
 ### Script to calculate the finite differences
 ### solution for the 1D heat diffusion & production
-### problem with constant physical properties.
+### problem with variable physical properties.
 ### 
 ### Implicit.
 
@@ -36,11 +36,38 @@ t = np.linspace(0, totaltime, nt)
 dx = L/(nx-1)
 dt = totaltime/(nt-1)
 
-# Set the (constant) physical parameters
-rho = 3300
-Cp = 1250
-H = 0.1e-6
-alpha = 2.5
+# Generate the "mid-point" grid for heat conductivity values 
+# between the main grid points. 
+x_mp = x + 0.5*dx   # i.e. add half-a-dx to each grid point
+
+
+
+### Generate the arrays to hold the physical parameters
+rho = np.empty(nx)   # density at main grid (kg/m3)
+Cp = np.empty(nx)    # heat capacity at main grid (J/kgK)
+H = np.empty(nx)     # heat production at main grid (W/m3)
+alpha = np.empty(nx) # heat conductivity at mid-point grid (W/mK)
+
+# Fill in the values, two layer lithosphere:
+#  crust:   0- 35 km
+#  mantle: 35-100 km
+idx_crust = x < 35e3
+idx_mantle = x > 35e3
+
+rho[idx_crust] = 2800
+rho[idx_mantle] = 3300
+Cp[idx_crust] = 800
+Cp[idx_mantle] = 1250
+H[idx_crust] = 2.0e-6
+H[idx_mantle] = 0.02e-6
+
+idx_crust_mp = x_mp < 35e3
+idx_mantle_mp = x_mp > 35e3
+
+alpha[idx_crust] = 2.5
+alpha[idx_mantle] = 2.5
+
+
 
 # Generate the array to hold the temperature field
 # and initialize it with the initial condition
@@ -63,39 +90,39 @@ for it in range(1,nt):
 	# step to the next one, this only needs to be done once.
 	# Here we do it every time step.
 	M[:, :] = 0 # set all values to zero
-	for ix in range(0, nx):
-		if ix == 0:
-			# This is the node at surface, use T_surf
-			M[ix, ix] = ... # EDITME
-			rhs[ix] = ... # EDITME
-		elif ix == nx-1:
-			# This is the node at surface, use T_bott
-			M[ix, ix] = ... # EDITME
-			rhs[ix] = ... # EDITME
-		else:
-			# Set the matrix coefficients for the inner nodes,
-			# the ones not at the boundary
+	for ix in range(1, nx-1):
+		# Set the matrix coefficients for the inner nodes.
 
-			# First calculate the coefficients:
-			A = ... # EDITME
-			B = ... # EDITME
+		# We are calculating a value for node ix, so the 
+		# first index (the row of the matrix) is ix.
+		# The second index (the column of the matrix)
+		# is the index of the T to which the coefficient 
+		# belongs to
+		
+		M[ix, ix-1] = ... # EDITME
+		M[ix, ix  ] = ... # EDITME
+		M[ix, ix+1] = ... # EDITME
 
-			# We are calculating a value for node ix, so the 
-			# first index (the row of the matrix) is ix.
-			# The second index (the column of the matrix)
-			# is the index of the T to which the coefficient 
-			# belongs to
 
-			M[ix, ix-1] = ... # EDITME
-			M[ix, ix  ] = ... # EDITME    
-			M[ix, ix+1] = ... # EDITME     
+		# The right-hand side vector needs to be updated
+		# every time step since it contains values
+		# that change from time step to time step (T[ix, it-1]).
+		
+		# Calculate the value of the right-hand side vector:
+		rhs[ix] = T[ix, it-1] * rho[ix] * Cp[ix] / dt + H[ix]
 
-			# The right-hand side vector needs to be updated
-			# every time step since it contains values
-			# that change from time step to time step (T[ix, it-1]).
-			
-			# Calculate the value of the right-hand side vector:
-			rhs[ix] = ... # EDITME
+	# Set the matrix coefficients for the the boundaries:
+	ix = 0
+	M[ix, ix] =  ... # EDITME
+	rhs[ix] = T ... # EDITME
+
+	ix = nx-1 
+	M[ix, ix] =  ... # EDITME 
+	rhs[ix] =  ... # EDITME
+
+	# Print the coefficient matrix
+	print("Time step", it, ", coefficient matrix M is:")
+	print(M, "\n")
 
 	# Solve the system of equations
 	Tnew = np.linalg.solve(M, rhs)

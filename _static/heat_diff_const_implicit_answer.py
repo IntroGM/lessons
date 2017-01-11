@@ -63,39 +63,38 @@ for it in range(1,nt):
 	# step to the next one, this only needs to be done once.
 	# Here we do it every time step.
 	M[:, :] = 0 # set all values to zero
-	for ix in range(0, nx):
-		if ix == 0:
-			# This is the node at surface, use T_surf
-			M[ix, ix] = ... # EDITME
-			rhs[ix] = ... # EDITME
-		elif ix == nx-1:
-			# This is the node at surface, use T_bott
-			M[ix, ix] = ... # EDITME
-			rhs[ix] = ... # EDITME
-		else:
-			# Set the matrix coefficients for the inner nodes,
-			# the ones not at the boundary
+	for ix in range(1, nx-1):
+		# Set the matrix coefficients for the inner nodes.
 
-			# First calculate the coefficients:
-			A = ... # EDITME
-			B = ... # EDITME
+		# We are calculating a value for node ix, so the 
+		# first index (the row of the matrix) is ix.
+		# The second index (the column of the matrix)
+		# is the index of the T to which the coefficient 
+		# belongs to
 
-			# We are calculating a value for node ix, so the 
-			# first index (the row of the matrix) is ix.
-			# The second index (the column of the matrix)
-			# is the index of the T to which the coefficient 
-			# belongs to
+		M[ix, ix-1] =                 -alpha/dx**2
+		M[ix, ix  ] =                 rho*Cp/dt + 2*alpha/dx**2
+		M[ix, ix+1] =                 -alpha/dx**2
 
-			M[ix, ix-1] = ... # EDITME
-			M[ix, ix  ] = ... # EDITME    
-			M[ix, ix+1] = ... # EDITME     
+		# The right-hand side vector needs to be updated
+		# every time step since it contains values
+		# that change from time step to time step (T[ix, it-1]).
+		
+		# Calculate the value of the right-hand side vector:
+		rhs[ix] =                     T[ix, it-1] * rho * Cp / dt + H
 
-			# The right-hand side vector needs to be updated
-			# every time step since it contains values
-			# that change from time step to time step (T[ix, it-1]).
-			
-			# Calculate the value of the right-hand side vector:
-			rhs[ix] = ... # EDITME
+	# Set the matrix coefficients for the the boundaries:
+	ix = 0
+	M[ix, ix] = 1 
+	rhs[ix] = T_surf     
+
+	ix = nx-1 
+	M[ix, ix] = 1 
+	rhs[ix] = T_bott    
+
+	# Print the coefficient matrix
+	print("Time step", it, ", coefficient matrix M is:")
+	print(M, "\n")
 
 	# Solve the system of equations
 	Tnew = np.linalg.solve(M, rhs)
